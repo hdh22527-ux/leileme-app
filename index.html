@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心累调节器 - 纯互动版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #6c5ce7; --bg: #f0f3f7; }
+        body { font-family: 'PingFang SC', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; color: #2d3436; }
+        
+        .card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* 聊天互动窗口 */
+        #chat-window { height: 350px; overflow-y: auto; border: 1px solid #eee; border-radius: 12px; padding: 15px; background: #fafafa; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .msg { padding: 12px 16px; border-radius: 15px; font-size: 0.95rem; line-height: 1.5; max-width: 85%; }
+        .bot { background: #dfe6e9; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        .input-group { display: flex; gap: 8px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; outline: none; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+
+        #chart-area { height: 180px; margin-top: 10px; }
+        .badge { display: inline-block; padding: 4px 10px; background: #ffeaa7; border-radius: 20px; font-size: 0.8rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="badge">数据觉察</div>
+        <div style="font-weight: bold; margin-bottom: 10px;">近 7 次心理负荷趋势</div>
+        <div id="chart-area"><canvas id="stressChart"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="badge">AI 认知疗法助手</div>
+        <div id="chat-window">
+            <div class="msg bot">你好。我是你的心理自救助手。感觉到“心累”通常是因为大脑陷入了某种循环。</div>
+            <div class="msg bot">现在，请试着用一句话写下：此时此刻，让你觉得最沉重、最疲惫的那个念头是什么？</div>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="userInput" placeholder="例如：我怎么做都无法让所有人满意..." onkeypress="if(event.keyCode==13) sendMessage()">
+            <button onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <div class="card" style="text-align: center;">
+        <div class="badge">即时干预</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button style="background:#55efc4; color:#00b894" onclick="startBreathing()">🫁 4-7-8 呼吸放松</button>
+            <button style="background:#81ecec; color:#00cec9" onclick="startGrounding()">🧘 5-4-3-2-1 归位法</button>
+        </div>
+    </div>
+
+    <script>
+        // 核心逻辑存储
+        let history = JSON.parse(localStorage.getItem('psy_data')) || [];
+        let chatStep = 0;
+        let chartInstance;
+
+        // 1. 发送消息逻辑
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMsg(text, 'user');
+            input.value = "";
+
+            // 模拟 AI 疗法逻辑（CBT 引导）
+            setTimeout(() => {
+                processTherapy(text);
+            }, 800);
+        }
+
+        function appendMsg(text, sender) {
+            const win = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            div.innerText = text;
+            win.appendChild(div);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        // 2. 心理疗法互动状态机
+        function processTherapy(text) {
+            chatStep++;
+            if(chatStep === 1) {
+                appendMsg("收到了。这个念头听起来确实很沉重。现在我们试着解构它：这个想法是‘事实’，还是你对这件事的‘解释’？如果你的好朋友也有同样的念头，你会怎么安慰他？", 'bot');
+                saveStress(80); // 默认高压记录
+            } else if(chatStep === 2) {
+                appendMsg("很有启发的观察。你看，当你站在朋友的角度，逻辑就清晰了。心累往往是因为我们对自己太苛刻。现在，请闭上眼，在心里对自己说一句：‘虽然很累，但我已经尽力了，这已经足够好了。’", 'bot');
+            } else {
+                appendMsg("你做得很好。我们要记住：想法只是天上的云，而你是看云的天空。云会散去，天空永恒。需要尝试一下左下角的‘4-7-8 呼吸法’来放松身体吗？", 'bot');
+                saveStress(40); // 缓解后记录
+            }
+        }
+
+        // 3. 呼吸法互动
+        function startBreathing() {
+            chatStep = 0;
+            document.getElementById('chat-window').innerHTML = "";
+            appendMsg("开始 4-7-8 呼吸法：\n1. 吸气 4 秒...\n2. 憋气 7 秒...\n3. 呼气 8 秒...", 'bot');
+            appendMsg("请重复 3 次。感受空气进入肺部，带走二氧化碳和压力。", 'bot');
+        }
+
+        // 4. 5-4-3-2-1 归位法 (DBT 常用，用于打断焦虑)
+        function startGrounding() {
+            appendMsg("这是‘着陆技术’，帮你的大脑回到当下：\n看到 5 个东西；\n摸到 4 个东西；\n听到 3 个声音；\n闻到 2 个气味；\n尝到 1 个味道。", 'bot');
+        }
+
+        // 5. 数据保存与图表
+        function saveStress(val) {
+            history.push({ t: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), v: val });
+            localStorage.setItem('psy_data', JSON.stringify(history));
+            updateChart();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('stressChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            const last7 = history.slice(-7);
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last7.map(d => d.t),
+                    datasets: [{
+                        label: '心理负荷',
+                        data: last7.map(d => d.v),
+                        borderColor: '#6c5ce7',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(108, 92, 231, 0.1)'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+            });
+        }
+
+        window.onload = updateChart;
+    </script>
+</body>
+</html>
